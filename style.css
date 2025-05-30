@@ -1,0 +1,238 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #ffe0f0; /* Màu hồng phấn dễ thương */
+    margin: 0;
+    perspective: 800px;
+    font-family: 'Arial', sans-serif; /* Hoặc một font chữ tròn trịa hơn nếu có */
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.box {
+    width: 180px;
+    height: 110px;
+    background-color: #ffccdd; /* Hồng nhạt cho hộp */
+    border: 6px solid #ff99bb; /* Hồng đậm hơn cho viền */
+    border-radius: 25px; /* Bo tròn nhiều hơn nữa */
+    display: flex; /* Cần thiết cho một số layout con nếu có, nhưng chủ yếu là position relative */
+    position: relative;
+    overflow: hidden; /* Rất quan trọng */
+    box-shadow: 4px 4px 12px rgba(0,0,0,0.1); /* Bóng đổ nhẹ hơn */
+}
+
+/* --- Khuôn mặt --- */
+.face {
+    position: absolute;
+    top: 32px; /* Điều chỉnh cho phù hợp với nắp mới */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 35px; /* Tăng chiều cao một chút cho mắt to hơn */
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.eyes {
+    display: flex;
+    justify-content: space-between;
+    width: 60px; /* Mắt gần nhau hơn một chút */
+    margin-bottom: 7px;
+}
+
+.eye {
+    width: 22px; /* Mắt to tròn hơn */
+    height: 22px;
+    background-color: #fff;
+    border: 2px solid #555; /* Viền mắt đậm hơn một chút */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: height 0.2s, transform 0.2s, background-color 0.2s;
+}
+
+.pupil {
+    width: 10px; /* Con ngươi to hơn */
+    height: 10px;
+    background-color: #333;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.mouth {
+    width: 30px;
+    height: 5px;
+    background-color: #333;
+    border-radius: 5px; /* Bo tròn miệng */
+    transition: height 0.2s, border-radius 0.2s, transform 0.2s, width 0.2s;
+}
+
+/* --- Biểu cảm --- */
+.eyes.surprised .eye {
+    height: 26px; /* Mắt to hơn khi ngạc nhiên */
+}
+.eyes.surprised .pupil {
+    transform: scale(0.8); /* Con ngươi nhỏ lại khi ngạc nhiên, hoặc to ra tùy ý */
+}
+.mouth.ooh {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+}
+.eyes.focused .eye {
+    height: 12px; /* Mắt hẹp lại */
+    border-radius: 12px 12px 5px 5px; /* Mí trên cong */
+}
+.eyes.focused .pupil {
+    transform: translateY(-3px);
+}
+.mouth.smile {
+    height: 12px;
+    border-radius: 0 0 15px 15px; /* Hình vòng cung cười */
+    width: 25px;
+    background-color: #333; /* Đảm bảo miệng cười có màu */
+}
+.eyes.closed .eye { /* Mắt nhắm/cười híp */
+    height: 5px;
+    background-color: transparent; /* Màu nền mắt biến mất */
+    border-color: #555;
+    border-radius: 2px 2px 8px 8px; /* Hình cong khi nhắm */
+    transform: translateY(5px); /* Hơi trễ xuống */
+}
+.eyes.closed .pupil {
+    transform: scale(0); /* Ẩn con ngươi */
+}
+
+/* --- Nắp hộp --- */
+.lid {
+    width: 100%;
+    height: 25px;
+    background-color: #ffb3c6; /* Hồng nhạt hơn cho nắp */
+    border-bottom: 3px solid #ff99bb;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 20;
+    transform-origin: top center;
+    transition: transform 0.4s ease-in-out;
+    border-radius: 18px 18px 0 0; /* Bo tròn nhiều hơn */
+}
+.lid.open {
+    transform: rotateX(-115deg); /* Góc mở nhẹ nhàng hơn */
+}
+
+/* --- Công tắc --- */
+.switch {
+    position: absolute;
+    top: 63px; /* Điều chỉnh vị trí cho phù hợp */
+    left: 50%;
+    transform: translateX(-50%);
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+    z-index: 10;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e6e6e6; /* Màu xám nhạt hơn cho công tắc */
+    transition: .4s;
+    border-radius: 28px; /* Bo tròn hết cỡ */
+}
+.slider:before {
+    position: absolute;
+    content: "❤️"; /* Biểu tượng trái tim nhỏ */
+    font-size: 14px; /* Kích thước trái tim */
+    color: #ff77a9; /* Màu trái tim */
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 0 3px rgba(0,0,0,0.2);
+}
+input:checked + .slider {
+    background-color: #a7d7f9; /* Xanh dương baby blue khi bật */
+}
+input:checked + .slider:before {
+    transform: translateX(22px); /* Điều chỉnh khoảng cách di chuyển */
+    content: "✨"; /* Ngôi sao khi bật */
+    color: #ffc107;
+}
+
+/* --- Cánh tay --- */
+.arm {
+    width: 18px; /* Hơi dày hơn một chút */
+    background-color: #c1d5e0; /* Xanh nhạt cho cánh tay */
+    border: 2px solid #a7c0cd; /* Xanh đậm hơn */
+    border-radius: 0 0 10px 10px; /* Bo tròn đầu dưới nhiều hơn */
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 25px; /* Xuất phát ngay dưới nắp */
+    height: 0;
+    transition: height 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Hiệu ứng nảy nhẹ */
+    z-index: 25;
+}
+.arm.active {
+    height: 40px; /* Vươn ra vừa đủ */
+}
+
+/* --- Bong bóng thoại --- */
+.dialogue-bubble {
+    background-color: white;
+    padding: 10px 15px;
+    border-radius: 15px; /* Bo tròn nhiều hơn */
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.1);
+    position: relative;
+    margin-top: 20px;
+    max-width: 170px;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out;
+    transform: translateY(8px) scale(0.95); /* Hiệu ứng xuất hiện nhẹ nhàng */
+    font-size: 13px;
+    color: #666; /* Màu chữ đậm hơn một chút */
+}
+.dialogue-bubble.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.dialogue-bubble::before { /* Mũi tên của bong bóng thoại */
+    content: "";
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 9px 9px 9px;
+    border-style: solid;
+    border-color: transparent transparent white transparent;
+}
+#dialogueText {
+    margin: 0;
+    font-weight: bold; /* Chữ đậm hơn cho dễ đọc */
+}

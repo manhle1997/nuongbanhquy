@@ -412,6 +412,59 @@ h1 {
 }
 .visitor-popup-content .steal-result { text-align: center; margin-top: 10px; font-weight: bold; min-height: 1.2em; }
 
+.steal-notification-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1002; /* Cao hơn visitorPopup */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.steal-notification-popup.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.steal-notification-content {
+    background-color: #fff;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    text-align: center;
+    min-width: 280px;
+    max-width: 90%;
+}
+
+.steal-notification-content p {
+    font-size: 1.1em;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.steal-notification-content button {
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+
+.steal-notification-content button:hover {
+    background-color: #4cae4c;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1100px) { /* Điều chỉnh breakpoint này nếu cần */
     .main-game-area {
@@ -455,3 +508,5 @@ h1 {
         font-size: 1.3em;
     }
 }
+/* Styles for Steal Notification Popup */
+

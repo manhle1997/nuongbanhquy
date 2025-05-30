@@ -71,6 +71,11 @@ const visitorUpgradesList = document.getElementById('visitorUpgradesList');
 const stealCookiesButton = document.getElementById('stealCookiesButton');
 const stealResultDisplay = document.getElementById('stealResultDisplay');
 
+// DOM Elements cho Steal Notification Popup
+const stealNotificationPopup = document.getElementById('stealNotificationPopup');
+const stealNotificationMessage = document.getElementById('stealNotificationMessage');
+const closeStealNotificationButton = document.getElementById('closeStealNotificationButton');
+
 // --- Firestore Collection Name ---
 const GAME_DATA_COLLECTION = 'DATA_GAME';
 const COMMENTS_COLLECTION = 'COMMENTS_GAME'; // Collection mới cho bình luận
@@ -450,63 +455,66 @@ async function resetGame() {
     }
 }
 
+// Biến để lưu trữ listener của leaderboard, giúp chúng ta có thể detach khi cần
+let leaderboardListener = null;
+
 // --- Xử lý Bảng Xếp Hạng ---
 async function fetchAndDisplayLeaderboard() {
     if (!db) return; // Chưa khởi tạo db
     leaderboardList.innerHTML = '<li>Đang tải...</li>'; // Thông báo đang tải
-
-    try {
-        const querySnapshot = await db.collection(GAME_DATA_COLLECTION)
-                                      .orderBy('currency', 'desc') // Sắp xếp theo 'currency' giảm dần
-                                      .limit(10) // Lấy top 10 người chơi
-                                      .get();
-
-        leaderboardList.innerHTML = ''; // Xóa nội dung cũ
-        if (querySnapshot.empty) {
-            leaderboardList.innerHTML = '<li>Chưa có ai trên bảng xếp hạng.</li>';
-            return;
-        }
-
-        let rank = 1;
-        querySnapshot.forEach(doc => {
-            const playerData = doc.data();
-            const playerUserId = doc.id; // Đây là UID của người chơi
-
-            // Cố gắng lấy phần tên từ email để hiển thị (tùy chọn)
-            // Bạn có thể muốn lưu một trường 'displayName' riêng khi người dùng đăng ký
-            // hoặc cho phép họ đặt tên hiển thị.
-            let displayName;
-            if (playerData.email) {
-                displayName = playerData.email.split('@')[0];
-            } else if (currentUser && doc.id === currentUser.uid && currentUser.email) {
-                // Nếu là người dùng hiện tại và playerData không có email, thử lấy từ currentUser
-                displayName = currentUser.email.split('@')[0]; // Lấy tên từ email của người dùng hiện tại
-            } else {
-                // Đối với những người chơi khác không có email trong playerData
-                displayName = `User...${doc.id.substring(doc.id.length - 5)}`; // Hiển thị một phần UID để phân biệt thay vì "Người chơi ẩn danh" cho tất cả
-            }
-
-            const listItem = document.createElement('li');
-            const isCurrentUserEntry = currentUser && playerUserId === currentUser.uid;
-
-            listItem.innerHTML = `
-                <span class="player-name" data-userid="${playerUserId}" style="cursor: ${isCurrentUserEntry ? 'default' : 'pointer'};">${rank}. ${displayName} ${isCurrentUserEntry ? '(Bạn)' : ''}</span>
-                <span class="player-score">${formatNumber(playerData.currency || 0)} 🍪</span>
-            `;
-            leaderboardList.appendChild(listItem);
-            
-            if (!isCurrentUserEntry) { // Chỉ thêm event listener nếu không phải là người dùng hiện tại
-                const playerNameSpan = listItem.querySelector('.player-name');
-                if (playerNameSpan) playerNameSpan.addEventListener('click', () => fetchAndDisplayVisitedBakery(playerUserId));
-            }
-            rank++;
-        });
-    } catch (error) {
-        console.error("Lỗi tải bảng xếp hạng:", error);
-        leaderboardList.innerHTML = '<li>Không thể tải bảng xếp hạng.</li>';
-        // Quan trọng: Nếu lỗi là do thiếu index, Firebase sẽ log một link trong console
-        // để bạn tạo index đó. Ví dụ: "FAILED_PRECONDITION: The query requires an index..."
+    // Nếu đã có listener, hãy detach nó trước khi tạo listener mới
+    if (leaderboardListener) {
+        leaderboardListener(); // Gọi hàm unsubscribe
+        leaderboardListener = null;
     }
+
+    leaderboardListener = db.collection(GAME_DATA_COLLECTION)
+        .orderBy('currency', 'desc') // Sắp xếp theo 'currency' giảm dần
+        .limit(10) // Lấy top 10 người chơi
+        .onSnapshot((querySnapshot) => {
+            leaderboardList.innerHTML = ''; // Xóa nội dung cũ mỗi khi có cập nhật
+            if (querySnapshot.empty) {
+                leaderboardList.innerHTML = '<li>Chưa có ai trên bảng xếp hạng.</li>';
+                return;
+            }
+
+            let rank = 1;
+            querySnapshot.forEach(doc => {
+                const playerData = doc.data();
+                const playerUserId = doc.id; // Đây là UID của người chơi
+
+                let displayName;
+                if (playerData.email) {
+                    displayName = playerData.email.split('@')[0];
+                } else if (currentUser && doc.id === currentUser.uid && currentUser.email) {
+                    displayName = currentUser.email.split('@')[0];
+                } else {
+                    displayName = `User...${doc.id.substring(doc.id.length - 5)}`;
+                }
+
+                const listItem = document.createElement('li');
+                const isCurrentUserEntry = currentUser && playerUserId === currentUser.uid;
+
+                listItem.innerHTML = `
+                    <span class="player-name" data-userid="${playerUserId}" style="cursor: ${isCurrentUserEntry ? 'default' : 'pointer'};">${rank}. ${displayName} ${isCurrentUserEntry ? '(Bạn)' : ''}</span>
+                    <span class="player-score">${formatNumber(playerData.currency || 0)} 🍪</span>
+                `;
+                leaderboardList.appendChild(listItem);
+                
+                if (!isCurrentUserEntry) {
+                    const playerNameSpan = listItem.querySelector('.player-name');
+                    if (playerNameSpan) playerNameSpan.addEventListener('click', () => fetchAndDisplayVisitedBakery(playerUserId));
+                }
+                rank++;
+            });
+        }, (error) => {
+            console.error("Lỗi lắng nghe bảng xếp hạng:", error);
+            leaderboardList.innerHTML = '<li>Không thể tải bảng xếp hạng.</li>';
+            if (leaderboardListener) {
+                leaderboardListener(); // Hủy đăng ký listener nếu có lỗi
+                leaderboardListener = null;
+            }
+        });
 }
 
 // --- Tính năng thăm tiệm bánh của người khác ---
@@ -534,6 +542,19 @@ function calculateStatsFromPlayerState(playerGameState) {
     return { cps: calculatedCps, clickPower: calculatedClickPower };
 }
 
+// Biến để lưu trữ listener của popup thăm tiệm bánh
+let visitedBakeryListener = null;
+
+// Biến cho tính năng ăn cắp
+let currentStealTargetId = null;
+let lastStealAttemptTimestamps = {}; // Lưu trữ { targetUserId: timestamp }
+const STEAL_COOLDOWN_MS = 5 * 60 * 1000; // 5 phút
+const STEAL_SUCCESS_CHANCE = 0.4; // 40% tỷ lệ thành công
+const BASE_STEAL_PERCENTAGE = 0.005; // Tỷ lệ cắp cơ bản (ví dụ: 0.5%)
+const CPS_STEAL_FACTOR = 0.00002; // Yếu tố ảnh hưởng từ CPS của nạn nhân (ví dụ: 0.00002%)
+const MAX_STEAL_PERCENTAGE = 0.05; // Tỷ lệ cắp tối đa (ví dụ: 5%)
+let stealCooldownInterval = null;
+
 async function fetchAndDisplayVisitedBakery(userIdToVisit) {
     if (!userIdToVisit || !db) {
         console.error("[Visitor] Invalid userIdToVisit or db not initialized.");
@@ -541,6 +562,7 @@ async function fetchAndDisplayVisitedBakery(userIdToVisit) {
     }
     console.log("[Visitor] Attempting to visit bakery of user ID:", userIdToVisit);
 
+    currentStealTargetId = userIdToVisit; // Lưu mục tiêu hiện tại
     // Reset và hiển thị popup với trạng thái đang tải
     visitorBakeryName.textContent = "Đang tải tiệm bánh...";
     visitorCurrencyDisplay.textContent = "...";
@@ -548,67 +570,227 @@ async function fetchAndDisplayVisitedBakery(userIdToVisit) {
     visitorClickPowerDisplay.textContent = "...";
     visitorUpgradesList.innerHTML = '<li>Đang tải nâng cấp...</li>';
     visitorBakeryPopup.classList.add('active');
+    updateStealButtonState(userIdToVisit); // Cập nhật trạng thái nút ăn cắp
 
-    try {
-        const docSnap = await db.collection(GAME_DATA_COLLECTION).doc(userIdToVisit).get();
-        if (docSnap.exists) {
-            const visitedPlayerData = docSnap.data();
-
-            if (!visitedPlayerData) { // Kiểm tra thêm nếu data() trả về undefined/null
-                console.error("[Visitor] Document exists but data is undefined/null for user ID:", userIdToVisit);
-                visitorBakeryName.textContent = "Lỗi dữ liệu người chơi";
-                visitorUpgradesList.innerHTML = '<li>Không thể đọc dữ liệu của người chơi này.</li>';
-                return;
-            }
-
-            const userEmail = visitedPlayerData.email || `User ${userIdToVisit.substring(0, 5)}...`;
-            const userName = userEmail.split('@')[0];
-
-            visitorBakeryName.textContent = `Tiệm bánh của ${userName}`;
-            visitorCurrencyDisplay.textContent = formatNumber(visitedPlayerData.currency || 0);
-
-            const stats = calculateStatsFromPlayerState(visitedPlayerData);
-            visitorCpsDisplay.textContent = formatNumber(stats.cps);
-            visitorClickPowerDisplay.textContent = formatNumber(stats.clickPower);
-
-            visitorUpgradesList.innerHTML = ''; // Xóa nội dung cũ
-            let hasUpgrades = false;
-            if (visitedPlayerData.upgrades && Array.isArray(visitedPlayerData.upgrades) && visitedPlayerData.upgrades.length > 0) {
-                visitedPlayerData.upgrades.forEach(upg => {
-                    const initialUpg = initialUpgradesState.find(iUpg => iUpg.id === upg.id);
-                    if (initialUpg && upg.level > 0) {
-                        const li = document.createElement('li');
-                        li.textContent = `${initialUpg.name}: Cấp ${upg.level}`;
-                        visitorUpgradesList.appendChild(li);
-                        hasUpgrades = true;
-                    }
-                });
-            }
-            if (!hasUpgrades) {
-                visitorUpgradesList.innerHTML = '<li>Người chơi này chưa mua nâng cấp nào.</li>';
-            }
-        } else {
-            visitorBakeryName.textContent = "Không tìm thấy tiệm bánh";
-            visitorUpgradesList.innerHTML = `<li>Không có dữ liệu cho người chơi với ID: ${userIdToVisit.substring(0,8)}...</li>`;
-        }
-    } catch (error) {
-        console.error("[Visitor] Error fetching/displaying visited bakery:", error);
-        visitorBakeryName.textContent = "Lỗi tải dữ liệu";
-        let errorMessage = 'Đã xảy ra lỗi khi tải thông tin tiệm bánh.';
-        if (error.code === 'permission-denied') {
-            errorMessage = 'Lỗi: Không có quyền truy cập dữ liệu của người chơi này. Vui lòng kiểm tra lại cài đặt Firestore Rules.';
-        } else if (error.message) {
-            errorMessage = `Lỗi: ${error.message}`;
-        }
-        visitorUpgradesList.innerHTML = `<li>${errorMessage}</li>`;
+    // Hủy listener cũ nếu có
+    if (visitedBakeryListener) {
+        visitedBakeryListener();
+        visitedBakeryListener = null;
     }
+
+    visitedBakeryListener = db.collection(GAME_DATA_COLLECTION).doc(userIdToVisit)
+        .onSnapshot((docSnap) => {
+            console.log("[Visitor] Snapshot received for user ID:", userIdToVisit);
+            if (docSnap.exists) {
+                const visitedPlayerData = docSnap.data();
+                console.log("[Visitor] Document data:", visitedPlayerData);
+
+                if (!visitedPlayerData) {
+                    console.error("[Visitor] Document exists but data is undefined/null for user ID:", userIdToVisit);
+                    visitorBakeryName.textContent = "Lỗi dữ liệu người chơi";
+                    visitorUpgradesList.innerHTML = '<li>Không thể đọc dữ liệu của người chơi này.</li>';
+                    return;
+                }
+
+                const userEmail = visitedPlayerData.email || `User ${userIdToVisit.substring(0, 5)}...`;
+                const userName = userEmail.split('@')[0];
+
+                visitorBakeryName.textContent = `Tiệm bánh của ${userName}`;
+                visitorCurrencyDisplay.textContent = formatNumber(visitedPlayerData.currency || 0); // Cập nhật real-time
+
+                const stats = calculateStatsFromPlayerState(visitedPlayerData); // Tính lại stats nếu nâng cấp thay đổi
+                visitorCpsDisplay.textContent = formatNumber(stats.cps);
+                visitorClickPowerDisplay.textContent = formatNumber(stats.clickPower);
+
+                visitorUpgradesList.innerHTML = '';
+                let hasUpgrades = false;
+                if (visitedPlayerData.upgrades && Array.isArray(visitedPlayerData.upgrades) && visitedPlayerData.upgrades.length > 0) {
+                    visitedPlayerData.upgrades.forEach(upg => {
+                        const initialUpg = initialUpgradesState.find(iUpg => iUpg.id === upg.id);
+                        if (initialUpg && upg.level > 0) {
+                            const li = document.createElement('li');
+                            li.textContent = `${initialUpg.name}: Cấp ${upg.level}`;
+                            visitorUpgradesList.appendChild(li);
+                            hasUpgrades = true;
+                        }
+                    });
+                }
+                if (!hasUpgrades) {
+                    visitorUpgradesList.innerHTML = '<li>Người chơi này chưa mua nâng cấp nào.</li>';
+                }
+            } else {
+                console.warn("[Visitor] No such document for user ID:", userIdToVisit);
+                visitorBakeryName.textContent = "Không tìm thấy tiệm bánh";
+                visitorUpgradesList.innerHTML = `<li>Không có dữ liệu cho người chơi với ID: ${userIdToVisit.substring(0,8)}...</li>`;
+            }
+        }, (error) => {
+            console.error("[Visitor] Error listening to visited bakery:", error);
+            visitorBakeryName.textContent = "Lỗi tải dữ liệu";
+            let errorMessage = 'Đã xảy ra lỗi khi lắng nghe thông tin tiệm bánh.';
+            if (error.code === 'permission-denied') {
+                errorMessage = 'Lỗi: Không có quyền truy cập dữ liệu của người chơi này. Vui lòng kiểm tra lại cài đặt Firestore Rules.';
+            } else if (error.message) {
+                errorMessage = `Lỗi: ${error.message}`;
+            }
+            visitorUpgradesList.innerHTML = `<li>${errorMessage}</li>`;
+            if (visitedBakeryListener) {
+                visitedBakeryListener(); // Hủy đăng ký listener nếu có lỗi
+                visitedBakeryListener = null;
+            }
+        });
 }
 
 closeVisitorPopupButton.addEventListener('click', () => {
     visitorBakeryPopup.classList.remove('active');
+    // Hủy listener khi đóng popup
+    if (visitedBakeryListener) {
+        visitedBakeryListener(); // Gọi hàm unsubscribe
+        visitedBakeryListener = null;
+        console.log("[Visitor] Detached listener for visited bakery.");
+    }
+    if (stealCooldownInterval) {
+        clearInterval(stealCooldownInterval);
+        stealCooldownInterval = null;
+    }
+    currentStealTargetId = null; // Xóa mục tiêu hiện tại
+    stealResultDisplay.textContent = ''; // Xóa thông báo kết quả ăn cắp
 });
 
+function updateStealButtonState(targetId) {
+    if (stealCooldownInterval) {
+        clearInterval(stealCooldownInterval);
+        stealCooldownInterval = null;
+    }
+    stealResultDisplay.textContent = ''; // Xóa thông báo cũ
+
+    if (!currentUser || !targetId || targetId === currentUser.uid) {
+        stealCookiesButton.disabled = true;
+        stealCookiesButton.textContent = "Không thể ăn cắp";
+        return;
+    }
+
+    const now = Date.now();
+    const lastAttemptTime = lastStealAttemptTimestamps[targetId] || 0;
+    const cooldownRemaining = STEAL_COOLDOWN_MS - (now - lastAttemptTime);
+
+    if (cooldownRemaining > 0) {
+        stealCookiesButton.disabled = true;
+        const updateText = () => {
+            const currentNow = Date.now();
+            const remaining = STEAL_COOLDOWN_MS - (currentNow - lastAttemptTime);
+            if (remaining <= 0) {
+                clearInterval(stealCooldownInterval);
+                stealCooldownInterval = null;
+                stealCookiesButton.disabled = false;
+                stealCookiesButton.textContent = "Ăn Cắp Bánh!";
+            } else {
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                stealCookiesButton.textContent = `Chờ ${minutes}m ${seconds}s`;
+            }
+        };
+        updateText(); // Cập nhật lần đầu
+        stealCooldownInterval = setInterval(updateText, 1000);
+    } else {
+        stealCookiesButton.disabled = false;
+        stealCookiesButton.textContent = "Ăn Cắp Bánh!";
+    }
+}
+
+async function handleStealAttempt() {
+    if (!currentStealTargetId || !currentUser || currentStealTargetId === currentUser.uid) {
+        stealResultDisplay.textContent = "Không thể tự ăn cắp chính mình!";
+        stealResultDisplay.style.color = 'orange';
+        return;
+    }
+
+    stealCookiesButton.disabled = true; // Vô hiệu hóa nút trong khi xử lý
+
+    const targetUserId = currentStealTargetId;
+    const now = Date.now();
+    if ((now - (lastStealAttemptTimestamps[targetUserId] || 0)) < STEAL_COOLDOWN_MS) {
+        stealResultDisplay.textContent = "Bạn cần chờ để ăn cắp người này lần nữa!";
+        stealResultDisplay.style.color = 'orange';
+        updateStealButtonState(targetUserId); // Cập nhật lại nút với thời gian chờ
+        return;
+    }
+
+    const thiefRef = db.collection(GAME_DATA_COLLECTION).doc(currentUser.uid);
+    const victimRef = db.collection(GAME_DATA_COLLECTION).doc(targetUserId);
+
+    try {
+        let stolenAmount = 0;
+        await db.runTransaction(async (transaction) => {
+            const victimDoc = await transaction.get(victimRef);
+            if (!victimDoc.exists) {
+                throw "Không tìm thấy nạn nhân!";
+            }
+            const victimData = victimDoc.data();
+            const victimCurrency = victimData.currency || 0;
+
+            // Tính toán chỉ số của nạn nhân (bao gồm CPS)
+            const victimStats = calculateStatsFromPlayerState(victimData);
+            const victimCPS = victimStats.cps || 0;
+
+            if (Math.random() < STEAL_SUCCESS_CHANCE) { // Thành công
+                // Tính tỷ lệ cắp động dựa trên CPS của nạn nhân
+                let dynamicStealPercentage = BASE_STEAL_PERCENTAGE + (victimCPS * CPS_STEAL_FACTOR);
+                // Giới hạn tỷ lệ cắp tối đa
+                dynamicStealPercentage = Math.min(dynamicStealPercentage, MAX_STEAL_PERCENTAGE);
+
+                stolenAmount = Math.floor(victimCurrency * dynamicStealPercentage);
+                stolenAmount = Math.max(0, Math.min(stolenAmount, victimCurrency)); // Đảm bảo không âm và không quá số hiện có
+
+                if (stolenAmount > 0 && victimCurrency >= stolenAmount) { // Đảm bảo nạn nhân có đủ để bị cắp
+                    transaction.update(victimRef, { currency: firebase.firestore.FieldValue.increment(-stolenAmount) });
+                    transaction.update(thiefRef, { currency: firebase.firestore.FieldValue.increment(stolenAmount) });
+                } else {
+                    // Thay vì throw, chúng ta sẽ set stolenAmount = -1 (hoặc một giá trị đặc biệt)
+                    // để biết rằng không cắp được gì và hiển thị thông báo phù hợp sau transaction.
+                    stolenAmount = -1; // Đánh dấu trường hợp không có bánh để cắp
+                    // Không throw lỗi ở đây nữa để transaction vẫn có thể hoàn thành (nếu không có lỗi khác)
+                }
+            } else { // Thất bại
+                throw "Ăn cắp thất bại! May mắn lần sau.";
+            }
+        });
+
+        // Nếu giao dịch thành công và stolenAmount > 0
+        if (stolenAmount > 0) { // Cắp thành công
+            currency += stolenAmount; // Cập nhật tiền của người chơi hiện tại
+            updateDisplay(); // Cập nhật hiển thị của người chơi hiện tại
+            // Hiển thị popup thông báo ăn cắp thành công
+            stealNotificationMessage.textContent = `Bạn đã ăn cắp thành công ${formatNumber(stolenAmount)} bánh quy! 🥳`;
+            stealNotificationPopup.classList.add('active');
+            stealResultDisplay.textContent = ''; // Xóa thông báo cũ trong popup thăm
+        } else if (stolenAmount === -1) { // Trường hợp nạn nhân không có bánh để cắp
+            stealNotificationMessage.textContent = "Nạn nhân không có bánh để cắp! 😥";
+            stealNotificationPopup.classList.add('active');
+            stealResultDisplay.textContent = ''; // Xóa thông báo cũ
+        }
+        // Trường hợp ăn cắp thất bại (do Math.random() >= STEAL_SUCCESS_CHANCE) sẽ được xử lý ở khối catch
+
+
+    } catch (error) {
+        console.error("Lỗi khi ăn cắp:", error);
+        // Hiển thị thông báo thất bại trong popup riêng
+        let failMessage = "Có lỗi xảy ra khi cố gắng ăn cắp. 😵";
+        if (typeof error === 'string') {
+            failMessage = error; // Sử dụng thông báo lỗi cụ thể nếu có (ví dụ: "Ăn cắp thất bại! May mắn lần sau.")
+        }
+        stealNotificationMessage.textContent = failMessage;
+        stealNotificationPopup.classList.add('active');
+        stealResultDisplay.textContent = ''; // Xóa thông báo cũ trong popup thăm
+
+    } finally {
+        lastStealAttemptTimestamps[targetUserId] = Date.now(); // Đặt thời gian chờ dù thành công hay thất bại
+        updateStealButtonState(targetUserId); // Cập nhật lại trạng thái nút (sẽ hiển thị cooldown)
+    }
+}
+
 // --- Xử lý Bình Luận Real-time ---
+let commentsListener = null; // Biến lưu trữ listener của comments
+
 async function handleSendComment() {
     const text = commentInput.value.trim();
     if (!text) {
@@ -640,7 +822,13 @@ async function handleSendComment() {
 function listenForComments() {
     if (!db) return;
 
-    db.collection(COMMENTS_COLLECTION)
+    // Hủy listener cũ nếu có
+    if (commentsListener) {
+        commentsListener();
+        commentsListener = null;
+    }
+
+    commentsListener = db.collection(COMMENTS_COLLECTION)
       .orderBy('timestamp', 'desc') // Sắp xếp bình luận mới nhất lên đầu
       .limit(20) // Giới hạn số lượng bình luận hiển thị ban đầu
       .onSnapshot((querySnapshot) => {
@@ -669,22 +857,30 @@ function listenForComments() {
       }, (error) => {
           console.error("Lỗi lắng nghe bình luận:", error);
           commentsList.innerHTML = '<p style="text-align:center; color:red;">Không thể tải bình luận.</p>';
+          if (commentsListener) {
+            commentsListener();
+            commentsListener = null;
+          }
       });
 }
 
 // --- Event Listeners ---
 saveButton.addEventListener('click', saveGame);
-loadButton.addEventListener('click', loadGame); // Cho phép tải lại thủ công nếu muốn
+loadButton.addEventListener('click', loadGame); 
 resetButton.addEventListener('click', resetGame);
 loginButton.addEventListener('click', handleLoginAttempt);
 registerButton.addEventListener('click', handleRegisterAttempt);
+stealCookiesButton.addEventListener('click', handleStealAttempt);
 logoutButton.addEventListener('click', handleLogout);
 sendCommentButton.addEventListener('click', handleSendComment);
+closeStealNotificationButton.addEventListener('click', () => {
+    stealNotificationPopup.classList.remove('active');
+});
+
 
 // Xử lý chuyển tab cho nâng cấp
 const tabLinks = document.querySelectorAll('.tab-link');
 const tabContents = document.querySelectorAll('.tab-content');
-
 tabLinks.forEach(link => {
     link.addEventListener('click', () => {
         const tabId = link.getAttribute('data-tab');
@@ -718,11 +914,14 @@ auth.onAuthStateChanged(async (user) => {
         // initializeUpgrades(); // Đã gọi ở trên
         updateDisplay(); // Cập nhật hiển thị (sẽ là 0 hết)
         showAuthScreen();
+        // Hủy các listeners khi người dùng đăng xuất
+        if (leaderboardListener) { leaderboardListener(); leaderboardListener = null; console.log("Detached leaderboard listener."); }
+        if (visitedBakeryListener) { visitedBakeryListener(); visitedBakeryListener = null; console.log("Detached visited bakery listener."); }
+        if (commentsListener) { commentsListener(); commentsListener = null; console.log("Detached comments listener."); } 
+        if (stealCooldownInterval) { clearInterval(stealCooldownInterval); stealCooldownInterval = null; }
+
         gameTitle.textContent = "Game nướng bánh - Đợi lương"; // Reset tiêu đề khi đăng xuất
         leaderboardPopup.style.display = 'none'; // Ẩn leaderboard khi đăng xuất
         commentsSection.style.display = 'none'; // Ẩn comments khi đăng xuất
     }
 });
-
-// Tùy chọn: Tự động cập nhật leaderboard mỗi X giây
-// setInterval(fetchAndDisplayLeaderboard, 60000); // Ví dụ: cập nhật mỗi 60 giây

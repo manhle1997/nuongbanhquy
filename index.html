@@ -3,37 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Useless Box Dễ Thương</title>
+    <title>Clicker Game Siêu Nghiện - Có Thợ Bánh!</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="game-container">
-        <div id="uselessBox" class="box">
-            <div class="face">
-                <div class="eyes">
-                    <div class="eye left-eye">
-                        <div class="pupil"></div>
-                    </div>
-                    <div class="eye right-eye">
-                        <div class="pupil"></div>
-                    </div>
-                </div>
-                <div class="mouth"></div>
-            </div>
+    <div id="authContainer">
+        <h2>Đăng Nhập / Đăng Ký</h2>
+        <input type="email" id="emailInput" placeholder="Email"> <!-- Thay đổi thành email -->
+        <input type="password" id="passwordInput" placeholder="Mật khẩu">
+        <button id="loginButton">Đăng Nhập</button>
+        <button id="registerButton">Đăng Ký</button>
+        <p id="authMessage"></p>
+    </div>
 
-            <div id="lid" class="lid"></div>
-            <label class="switch">
-                <input type="checkbox" id="mainSwitch">
-                <span class="slider"></span>
-            </label>
-            <div id="arm" class="arm"></div>
+    <div class="main-game-area" style="display: flex; align-items: flex-start;"> <!-- Wrapper cho game và leaderboard -->
+        <div id="leaderboardPopup" class="leaderboard-popup" style="display: none;">
+            <h2>🏆 Bảng Xếp Hạng 🏆</h2>
+            <ol id="leaderboardList">
+                <!-- Người chơi sẽ được thêm vào đây bằng JavaScript -->
+            </ol>
         </div>
 
-        <div id="dialogueBubble" class="dialogue-bubble">
-            <p id="dialogueText"></p>
+        <div class="container" style="display: none; margin-left: 20px;"> <!-- Game container initially hidden -->
+            <div id="userSession" style="display: none;">
+                <p>Xin chào, <span id="loggedInUser"></span>! <button id="logoutButton">Đăng Xuất</button></p>
+            </div>
+            <h1>Game nướng bánh - Đợi lương</h1>
+
+            <div class="stats">
+                <p>🍪 Bánh Quy: <span id="currencyDisplay">0</span></p>
+                <p>Bánh quy / giây: <span id="cpsDisplay">0</span></p>
+                <p>Sức mạnh click: <span id="clickPowerDisplay">1</span></p>
+            </div>
+
+            <div class="baker-area">
+                <img id="bakerImage" src="giphy.gif" alt="Thợ làm bánh đang nướng bánh">
+            </div>
+
+            <div class="click-area">
+                <button id="clickButton" class="click-button">Nướng Bánh!</button>
+            </div>
+
+            <h2>Nâng Cấp Tiệm Bánh</h2>
+            <div class="upgrade-tabs-container">
+                <div class="upgrade-tabs">
+                    <button class="tab-link active" data-tab="nhanCong">👨‍🍳 Nhân Công</button>
+                    <button class="tab-link" data-tab="thietBi">🛠️ Thiết Bị</button>
+                    <button class="tab-link" data-tab="kiNang">✨ Kĩ Năng</button>
+                </div>
+                <div id="nhanCong" class="tab-content active">
+                    <div id="upgradesNhanCongContainer" class="upgrades-container">
+                        <!-- Nâng cấp nhân công sẽ ở đây -->
+                    </div>
+                </div>
+                <div id="thietBi" class="tab-content">
+                    <div id="upgradesThietBiContainer" class="upgrades-container">
+                        <!-- Nâng cấp thiết bị sẽ ở đây -->
+                    </div>
+                </div>
+                <div id="kiNang" class="tab-content">
+                    <div id="upgradesKiNangContainer" class="upgrades-container">
+                        <!-- Nâng cấp kĩ năng sẽ ở đây -->
+                    </div>
+                </div>
+            </div>
+
+            <button id="saveButton">Lưu Game</button>
+            <button id="loadButton">Tải Game</button>
+            <button id="resetButton">Chơi Lại Từ Đầu</button>
+        </div>
+
+        <div id="commentsSection" class="comments-section" style="display: none; margin-left: 20px;">
+            <h2>💬 Bình Luận 💬</h2>
+            <div id="commentsList">
+                <!-- Bình luận sẽ được thêm vào đây -->
+            </div>
+            <div class="comment-input-area">
+                <input type="text" id="commentInput" placeholder="Viết bình luận...">
+                <button id="sendCommentButton">Gửi</button>
+            </div>
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <script src="script.js"></script>
+
 </body>
 </html>

@@ -1,238 +1,362 @@
 body {
+    font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #ffe0f0; /* Màu hồng phấn dễ thương */
-    margin: 0;
-    perspective: 800px;
-    font-family: 'Arial', sans-serif; /* Hoặc một font chữ tròn trịa hơn nếu có */
+    background-color: #f0e4d7; /* Màu nền ấm áp */
+    color: #333;    margin: 0;
+    padding: 10px; /* Giảm padding của body xuống */
+    box-sizing: border-box;
 }
 
-.game-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.box {
-    width: 180px;
-    height: 110px;
-    background-color: #ffccdd; /* Hồng nhạt cho hộp */
-    border: 6px solid #ff99bb; /* Hồng đậm hơn cho viền */
-    border-radius: 25px; /* Bo tròn nhiều hơn nữa */
-    display: flex; /* Cần thiết cho một số layout con nếu có, nhưng chủ yếu là position relative */
-    position: relative;
-    overflow: hidden; /* Rất quan trọng */
-    box-shadow: 4px 4px 12px rgba(0,0,0,0.1); /* Bóng đổ nhẹ hơn */
-}
-
-/* --- Khuôn mặt --- */
-.face {
-    position: absolute;
-    top: 32px; /* Điều chỉnh cho phù hợp với nắp mới */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90px;
-    height: 35px; /* Tăng chiều cao một chút cho mắt to hơn */
-    z-index: 5;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.eyes {
-    display: flex;
-    justify-content: space-between;
-    width: 60px; /* Mắt gần nhau hơn một chút */
-    margin-bottom: 7px;
-}
-
-.eye {
-    width: 22px; /* Mắt to tròn hơn */
-    height: 22px;
-    background-color: #fff;
-    border: 2px solid #555; /* Viền mắt đậm hơn một chút */
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    transition: height 0.2s, transform 0.2s, background-color 0.2s;
-}
-
-.pupil {
-    width: 10px; /* Con ngươi to hơn */
-    height: 10px;
-    background-color: #333;
-    border-radius: 50%;
-    transition: transform 0.2s;
-}
-
-.mouth {
-    width: 30px;
-    height: 5px;
-    background-color: #333;
-    border-radius: 5px; /* Bo tròn miệng */
-    transition: height 0.2s, border-radius 0.2s, transform 0.2s, width 0.2s;
-}
-
-/* --- Biểu cảm --- */
-.eyes.surprised .eye {
-    height: 26px; /* Mắt to hơn khi ngạc nhiên */
-}
-.eyes.surprised .pupil {
-    transform: scale(0.8); /* Con ngươi nhỏ lại khi ngạc nhiên, hoặc to ra tùy ý */
-}
-.mouth.ooh {
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-}
-.eyes.focused .eye {
-    height: 12px; /* Mắt hẹp lại */
-    border-radius: 12px 12px 5px 5px; /* Mí trên cong */
-}
-.eyes.focused .pupil {
-    transform: translateY(-3px);
-}
-.mouth.smile {
-    height: 12px;
-    border-radius: 0 0 15px 15px; /* Hình vòng cung cười */
-    width: 25px;
-    background-color: #333; /* Đảm bảo miệng cười có màu */
-}
-.eyes.closed .eye { /* Mắt nhắm/cười híp */
-    height: 5px;
-    background-color: transparent; /* Màu nền mắt biến mất */
-    border-color: #555;
-    border-radius: 2px 2px 8px 8px; /* Hình cong khi nhắm */
-    transform: translateY(5px); /* Hơi trễ xuống */
-}
-.eyes.closed .pupil {
-    transform: scale(0); /* Ẩn con ngươi */
-}
-
-/* --- Nắp hộp --- */
-.lid {
-    width: 100%;
-    height: 25px;
-    background-color: #ffb3c6; /* Hồng nhạt hơn cho nắp */
-    border-bottom: 3px solid #ff99bb;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 20;
-    transform-origin: top center;
-    transition: transform 0.4s ease-in-out;
-    border-radius: 18px 18px 0 0; /* Bo tròn nhiều hơn */
-}
-.lid.open {
-    transform: rotateX(-115deg); /* Góc mở nhẹ nhàng hơn */
-}
-
-/* --- Công tắc --- */
-.switch {
-    position: absolute;
-    top: 63px; /* Điều chỉnh vị trí cho phù hợp */
-    left: 50%;
-    transform: translateX(-50%);
-    display: inline-block;
-    width: 50px;
-    height: 28px;
-    z-index: 10;
-}
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #e6e6e6; /* Màu xám nhạt hơn cho công tắc */
-    transition: .4s;
-    border-radius: 28px; /* Bo tròn hết cỡ */
-}
-.slider:before {
-    position: absolute;
-    content: "❤️"; /* Biểu tượng trái tim nhỏ */
-    font-size: 14px; /* Kích thước trái tim */
-    color: #ff77a9; /* Màu trái tim */
-    height: 20px;
-    width: 20px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: .4s;
-    border-radius: 50%;
-    box-shadow: 0 0 3px rgba(0,0,0,0.2);
-}
-input:checked + .slider {
-    background-color: #a7d7f9; /* Xanh dương baby blue khi bật */
-}
-input:checked + .slider:before {
-    transform: translateX(22px); /* Điều chỉnh khoảng cách di chuyển */
-    content: "✨"; /* Ngôi sao khi bật */
-    color: #ffc107;
-}
-
-/* --- Cánh tay --- */
-.arm {
-    width: 18px; /* Hơi dày hơn một chút */
-    background-color: #c1d5e0; /* Xanh nhạt cho cánh tay */
-    border: 2px solid #a7c0cd; /* Xanh đậm hơn */
-    border-radius: 0 0 10px 10px; /* Bo tròn đầu dưới nhiều hơn */
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 25px; /* Xuất phát ngay dưới nắp */
-    height: 0;
-    transition: height 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Hiệu ứng nảy nhẹ */
-    z-index: 25;
-}
-.arm.active {
-    height: 40px; /* Vươn ra vừa đủ */
-}
-
-/* --- Bong bóng thoại --- */
-.dialogue-bubble {
-    background-color: white;
-    padding: 10px 15px;
-    border-radius: 15px; /* Bo tròn nhiều hơn */
-    box-shadow: 3px 3px 8px rgba(0,0,0,0.1);
-    position: relative;
-    margin-top: 20px;
-    max-width: 170px;
+.container {
+    background-color: #fffaf0; /* Màu kem */
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     text-align: center;
-    opacity: 0;
-    transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out;
-    transform: translateY(8px) scale(0.95); /* Hiệu ứng xuất hiện nhẹ nhàng */
-    font-size: 13px;
-    color: #666; /* Màu chữ đậm hơn một chút */
+    width: 100%;
+    max-width: 500px;
 }
-.dialogue-bubble.show {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+
+h1 {
+    color: #d2691e; /* Màu chocolate */
 }
-.dialogue-bubble::before { /* Mũi tên của bong bóng thoại */
-    content: "";
-    position: absolute;
-    top: -9px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 0 9px 9px 9px;
-    border-style: solid;
-    border-color: transparent transparent white transparent;
+
+.stats p {
+    font-size: 1.1em;
+    margin: 8px 0;
+    color: #5a3e2b; /* Màu nâu đậm */
 }
-#dialogueText {
-    margin: 0;
-    font-weight: bold; /* Chữ đậm hơn cho dễ đọc */
+
+.stats span {
+    font-weight: bold;
+    color: #c04000; /* Màu cam cháy */
+}
+
+.click-area {
+    margin: 25px 0;
+}
+
+.click-button {
+    background-color: #ff7f50; /* Màu san hô */
+    color: white;
+    border: none;
+    padding: 20px 35px;
+    font-size: 1.5em;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 4px #cc572b; /* Bóng đổ tạo chiều sâu */
+}
+
+.click-button:hover {
+    background-color: #ff6347; /* Màu cà chua */
+}
+
+.click-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px #cc572b;
+}
+
+.upgrade {
+    background-color: #fff0db; /* Màu be nhạt */
+    border: 2px solid #f5deb3; /* Màu lúa mì */
+    padding: 15px;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.upgrade h3 {
+    margin-top: 0;
+    color: #8b4513; /* Màu nâu yên ngựa */
+}
+
+.upgrade p {
+    margin: 5px 0;
+    font-size: 0.9em;
+}
+
+.upgrade button {
+    background-color: #5cb85c; /* Xanh lá cây */
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+}
+
+.upgrade button:hover {
+    background-color: #4cae4c;
+}
+
+.upgrade button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Styles for Upgrade Tabs */
+.upgrade-tabs-container {
+    margin-top: 20px;
+    background-color: #fdf5e6; /* Old Lace - màu nền cho khu vực tab */
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.upgrade-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #e0c9a6; /* Đường kẻ phân cách tab */
+}
+
+.tab-link {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+    font-size: 1em;
+    color: #8b4513; /* Màu nâu yên ngựa */
+    border-radius: 5px 5px 0 0; /* Bo góc trên */
+    margin-right: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.tab-link:hover {
+    background-color: #f5e5c6; /* Màu nhạt hơn khi hover */
+}
+
+.tab-link.active {
+    background-color: #fffaf0; /* Màu kem giống container */
+    color: #d2691e; /* Màu chocolate */
+    border-bottom: 2px solid #fffaf0; /* Che đường kẻ dưới của .upgrade-tabs */
+    margin-bottom: -2px; /* Nâng tab active lên một chút */
+}
+
+.tab-content {
+    display: none; /* Ẩn tất cả các tab content ban đầu */
+}
+
+.tab-content.active {
+    display: block; /* Chỉ hiển thị tab content đang active */
+}
+
+/* Giữ nguyên style cho container chứa các card nâng cấp */
+.upgrades-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+#saveButton, #loadButton, #resetButton {
+    margin-top: 20px;
+    padding: 10px 15px;
+    margin-right: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#saveButton { background-color: #5bc0de; color: white; }
+#loadButton { background-color: #f0ad4e; color: white; }
+#resetButton { background-color: #d9534f; color: white; }
+
+/* Styles for Auth Container */
+#authContainer {
+    background-color: #fffaf0;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto; /* Center it if it's the only thing visible */
+}
+
+#authContainer input {
+    display: block;
+    width: calc(100% - 22px); /* Account for padding and border */
+    padding: 10px;
+    margin: 10px auto;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+#authContainer button {
+    background-color: #ff7f50; /* Màu san hô */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+    transition: background-color 0.2s;
+}
+
+#authContainer button:hover {
+    background-color: #ff6347; /* Màu cà chua */
+}
+
+#authMessage {
+    color: red;
+    font-size: 0.9em;
+    min-height: 1.2em; /* Reserve space for message */
+    margin-top: 10px;
+}
+
+#userSession {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #e6f3ff;
+    border-radius: 5px;
+    text-align: right; /* Align user info and logout to the right */
+}
+#userSession p { margin: 0; color: #333; }
+#userSession span { font-weight: bold; }
+#logoutButton { background-color: #d9534f; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 10px; }
+#logoutButton:hover { background-color: #c9302c; }
+
+/* Styles for Leaderboard Popup */
+.main-game-area {
+    display: flex; /* Sắp xếp game và leaderboard cạnh nhau */
+    align-items: flex-start; /* Căn chỉnh các item từ trên xuống */
+    gap: 20px; /* Khoảng cách giữa game và leaderboard */
+    width: 100%;
+    max-width: 1300px; 
+    margin: auto; /* Căn giữa .main-game-area */
+}
+
+.leaderboard-popup {
+    background-color: #fffaf0; /* Màu kem */
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 280px; /* Độ rộng của leaderboard */
+    border: 2px solid #d2691e;
+}
+
+.leaderboard-popup h2 {
+    color: #d2691e;
+    text-align: center;
+    margin-top: 0;
+}
+
+.leaderboard-popup ol {
+    list-style-type: none; /* Kiểu số thứ tự */
+    padding-left: 20px;
+}
+
+.leaderboard-popup li {
+    padding: 5px 0;
+    border-bottom: 1px dashed #f5deb3;
+    font-size: 0.9em;
+}
+
+.leaderboard-popup li:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-popup span.player-name {
+    font-weight: bold;
+    color: #8b4513;
+}
+
+.leaderboard-popup span.player-score {
+    float: right;
+    color: #c04000;
+}
+
+/* Styles for Comments Section */
+.comments-section {
+    background-color: #faf0e6; /* Màu linen */
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    width: 100%;
+    max-width: 280px; /* Cùng độ rộng với leaderboard cho cân đối */
+    /* margin-top: 20px; */ /* Không cần margin-top nữa vì nó nằm ngang hàng */
+    border: 2px solid #d2b48c; /* Màu tan */
+}
+
+.comments-section h2 {
+    color: #8b4513; /* Màu nâu yên ngựa */
+    text-align: center;
+    margin-top: 0;
+}
+
+#commentsList {
+    max-height: 200px; /* Giới hạn chiều cao, cho phép cuộn */
+    overflow-y: auto;
+    margin-bottom: 15px;
+    border: 1px solid #e0c9a6;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 5px;
+}
+
+.comment-item {
+    padding: 6px 0;
+    border-bottom: 1px dashed #f5f5f5;
+    font-size: 0.85em;
+}
+.comment-item:last-child { border-bottom: none; }
+.comment-user { font-weight: bold; color: #5a3e2b; }
+.comment-text { margin-left: 5px; color: #333; }
+.comment-timestamp { font-size: 0.75em; color: #999; display: block; text-align: right; }
+
+.comment-input-area { display: flex; gap: 5px; }
+.comment-input-area input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+.comment-input-area button { padding: 8px 12px; background-color: #ff7f50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+.comment-input-area button:hover { background-color: #ff6347; }
+.comment-input-area button:disabled { background-color: #cccccc; cursor: not-allowed;}
+
+/* Responsive adjustments */
+@media (max-width: 1100px) { /* Điều chỉnh breakpoint này nếu cần */
+    .main-game-area {
+        flex-direction: column; /* Xếp các cột chồng lên nhau */
+        align-items: center; /* Căn giữa các cột khi chúng chồng lên nhau */
+        gap: 15px;
+    }
+
+    .leaderboard-popup,
+    .comments-section,
+    .container {
+        max-width: 90%; /* Cho phép các cột chiếm nhiều hơn chiều rộng màn hình */
+        margin-left: auto !important; /* Ghi đè margin-left inline để căn giữa */
+        margin-right: auto !important; /* Ghi đè margin-right inline để căn giữa */
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 5px; /* Giảm padding body hơn nữa trên màn hình rất nhỏ */
+    }
+
+    .container, #authContainer {
+        padding: 15px; /* Giảm padding bên trong các container chính */
+    }
+
+    .click-button {
+        padding: 15px 25px;
+        font-size: 1.2em;
+    }
+
+    .upgrades-container {
+        /* grid-template-columns: 1fr; */ /* Có thể giữ 2 cột nếu muốn trên tablet */
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Điều chỉnh minmax cho màn hình nhỏ hơn */
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+    h2 {
+        font-size: 1.3em;
+    }
 }

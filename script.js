@@ -21,6 +21,7 @@ let currency = 0;
 let currencyPerSecond = 0;
 let clickPower = 1;
 let currentUser = null; // Sẽ lưu đối tượng user của Firebase
+let activeUpgradeTab = 'nhanCong'; // Biến lưu tab nâng cấp đang active
 
 // --- DOM Elements ---
 const authContainer = document.getElementById('authContainer');
@@ -34,6 +35,7 @@ const gameContainer = document.querySelector('.container');
 const userSessionDisplay = document.getElementById('userSession');
 const loggedInUserDisplay = document.getElementById('loggedInUser');
 const logoutButton = document.getElementById('logoutButton');
+const gameTitle = document.getElementById('gameTitle'); // Lấy tham chiếu đến h1
 
 const currencyDisplay = document.getElementById('currencyDisplay');
 const cpsDisplay = document.getElementById('cpsDisplay');
@@ -56,6 +58,18 @@ const commentsSection = document.getElementById('commentsSection');
 const commentsList = document.getElementById('commentsList');
 const commentInput = document.getElementById('commentInput');
 const sendCommentButton = document.getElementById('sendCommentButton');
+
+// DOM Elements cho Visitor Bakery Popup
+const visitorBakeryPopup = document.getElementById('visitorBakeryPopup');
+const closeVisitorPopupButton = document.getElementById('closeVisitorPopupButton');
+const visitorBakeryName = document.getElementById('visitorBakeryName');
+const visitorCurrencyDisplay = document.getElementById('visitorCurrencyDisplay');
+const visitorCpsDisplay = document.getElementById('visitorCpsDisplay');
+const visitorClickPowerDisplay = document.getElementById('visitorClickPowerDisplay');
+const visitorUpgradesList = document.getElementById('visitorUpgradesList');
+
+const stealCookiesButton = document.getElementById('stealCookiesButton');
+const stealResultDisplay = document.getElementById('stealResultDisplay');
 
 // --- Firestore Collection Name ---
 const GAME_DATA_COLLECTION = 'DATA_GAME';
@@ -128,7 +142,7 @@ function updateDisplay() {
     currencyDisplay.textContent = formatNumber(currency);
     cpsDisplay.textContent = formatNumber(currencyPerSecond);
     clickPowerDisplay.textContent = formatNumber(clickPower);
-    renderUpgrades();
+    renderUpgrades(activeUpgradeTab); // Gọi renderUpgrades với tab đang active
 }
 
 function formatNumber(num) {
@@ -143,7 +157,8 @@ clickButton.addEventListener('click', () => {
     updateDisplay();
 });
 
-function renderUpgrades(category = 'nhanCong') { // Mặc định hiển thị tab 'nhanCong'
+function renderUpgrades(category) {
+    if (!category) category = activeUpgradeTab; // Nếu không có category, dùng tab đang active
     // Xác định container dựa trên category
     let currentUpgradesContainer;
     if (category === 'nhanCong') {
@@ -226,6 +241,12 @@ async function showGameScreen() {
     userSessionDisplay.style.display = 'block';
     if (currentUser) {
         loggedInUserDisplay.textContent = currentUser.email;
+        // Cập nhật tiêu đề game với tên người dùng
+        if (currentUser.email) {
+            const userName = currentUser.email.split('@')[0];
+            gameTitle.textContent = `Tiệm bánh của ${userName}`;
+        }
+
     }
     await loadGame(); // Tải game cho người dùng hiện tại từ Firestore
     await fetchAndDisplayLeaderboard(); // Tải và hiển thị leaderboard
@@ -449,13 +470,13 @@ async function fetchAndDisplayLeaderboard() {
         let rank = 1;
         querySnapshot.forEach(doc => {
             const playerData = doc.data();
-            // const playerUserId = doc.id; // Đây là UID của người chơi
+            const playerUserId = doc.id; // Đây là UID của người chơi
 
             // Cố gắng lấy phần tên từ email để hiển thị (tùy chọn)
             // Bạn có thể muốn lưu một trường 'displayName' riêng khi người dùng đăng ký
             // hoặc cho phép họ đặt tên hiển thị.
             let displayName;
-            if (playerData.email) { // Nếu bạn lưu email trong document
+            if (playerData.email) {
                 displayName = playerData.email.split('@')[0];
             } else if (currentUser && doc.id === currentUser.uid && currentUser.email) {
                 // Nếu là người dùng hiện tại và playerData không có email, thử lấy từ currentUser
@@ -466,11 +487,18 @@ async function fetchAndDisplayLeaderboard() {
             }
 
             const listItem = document.createElement('li');
+            const isCurrentUserEntry = currentUser && playerUserId === currentUser.uid;
+
             listItem.innerHTML = `
-                <span class="player-name">${rank}. ${displayName}</span>
+                <span class="player-name" data-userid="${playerUserId}" style="cursor: ${isCurrentUserEntry ? 'default' : 'pointer'};">${rank}. ${displayName} ${isCurrentUserEntry ? '(Bạn)' : ''}</span>
                 <span class="player-score">${formatNumber(playerData.currency || 0)} 🍪</span>
             `;
             leaderboardList.appendChild(listItem);
+            
+            if (!isCurrentUserEntry) { // Chỉ thêm event listener nếu không phải là người dùng hiện tại
+                const playerNameSpan = listItem.querySelector('.player-name');
+                if (playerNameSpan) playerNameSpan.addEventListener('click', () => fetchAndDisplayVisitedBakery(playerUserId));
+            }
             rank++;
         });
     } catch (error) {
@@ -480,6 +508,105 @@ async function fetchAndDisplayLeaderboard() {
         // để bạn tạo index đó. Ví dụ: "FAILED_PRECONDITION: The query requires an index..."
     }
 }
+
+// --- Tính năng thăm tiệm bánh của người khác ---
+
+// Hàm tính toán CPS và Click Power từ dữ liệu game của một người chơi
+function calculateStatsFromPlayerState(playerGameState) {
+    let calculatedCps = 0;
+    let calculatedClickPower = 1; // Base click power
+
+    if (playerGameState.upgrades && Array.isArray(playerGameState.upgrades)) {
+        playerGameState.upgrades.forEach(savedUpgrade => {
+            const initialGameUpgrade = initialUpgradesState.find(u => u.id === savedUpgrade.id);
+            if (initialGameUpgrade) {
+                for (let i = 0; i < savedUpgrade.level; i++) {
+                    if (initialGameUpgrade.cps_increase) {
+                        calculatedCps += initialGameUpgrade.cps_increase;
+                    }
+                    if (initialGameUpgrade.click_power_increase) {
+                        calculatedClickPower += initialGameUpgrade.click_power_increase;
+                    }
+                }
+            }
+        });
+    }
+    return { cps: calculatedCps, clickPower: calculatedClickPower };
+}
+
+async function fetchAndDisplayVisitedBakery(userIdToVisit) {
+    if (!userIdToVisit || !db) {
+        console.error("[Visitor] Invalid userIdToVisit or db not initialized.");
+        return;
+    }
+    console.log("[Visitor] Attempting to visit bakery of user ID:", userIdToVisit);
+
+    // Reset và hiển thị popup với trạng thái đang tải
+    visitorBakeryName.textContent = "Đang tải tiệm bánh...";
+    visitorCurrencyDisplay.textContent = "...";
+    visitorCpsDisplay.textContent = "...";
+    visitorClickPowerDisplay.textContent = "...";
+    visitorUpgradesList.innerHTML = '<li>Đang tải nâng cấp...</li>';
+    visitorBakeryPopup.classList.add('active');
+
+    try {
+        const docSnap = await db.collection(GAME_DATA_COLLECTION).doc(userIdToVisit).get();
+        if (docSnap.exists) {
+            const visitedPlayerData = docSnap.data();
+
+            if (!visitedPlayerData) { // Kiểm tra thêm nếu data() trả về undefined/null
+                console.error("[Visitor] Document exists but data is undefined/null for user ID:", userIdToVisit);
+                visitorBakeryName.textContent = "Lỗi dữ liệu người chơi";
+                visitorUpgradesList.innerHTML = '<li>Không thể đọc dữ liệu của người chơi này.</li>';
+                return;
+            }
+
+            const userEmail = visitedPlayerData.email || `User ${userIdToVisit.substring(0, 5)}...`;
+            const userName = userEmail.split('@')[0];
+
+            visitorBakeryName.textContent = `Tiệm bánh của ${userName}`;
+            visitorCurrencyDisplay.textContent = formatNumber(visitedPlayerData.currency || 0);
+
+            const stats = calculateStatsFromPlayerState(visitedPlayerData);
+            visitorCpsDisplay.textContent = formatNumber(stats.cps);
+            visitorClickPowerDisplay.textContent = formatNumber(stats.clickPower);
+
+            visitorUpgradesList.innerHTML = ''; // Xóa nội dung cũ
+            let hasUpgrades = false;
+            if (visitedPlayerData.upgrades && Array.isArray(visitedPlayerData.upgrades) && visitedPlayerData.upgrades.length > 0) {
+                visitedPlayerData.upgrades.forEach(upg => {
+                    const initialUpg = initialUpgradesState.find(iUpg => iUpg.id === upg.id);
+                    if (initialUpg && upg.level > 0) {
+                        const li = document.createElement('li');
+                        li.textContent = `${initialUpg.name}: Cấp ${upg.level}`;
+                        visitorUpgradesList.appendChild(li);
+                        hasUpgrades = true;
+                    }
+                });
+            }
+            if (!hasUpgrades) {
+                visitorUpgradesList.innerHTML = '<li>Người chơi này chưa mua nâng cấp nào.</li>';
+            }
+        } else {
+            visitorBakeryName.textContent = "Không tìm thấy tiệm bánh";
+            visitorUpgradesList.innerHTML = `<li>Không có dữ liệu cho người chơi với ID: ${userIdToVisit.substring(0,8)}...</li>`;
+        }
+    } catch (error) {
+        console.error("[Visitor] Error fetching/displaying visited bakery:", error);
+        visitorBakeryName.textContent = "Lỗi tải dữ liệu";
+        let errorMessage = 'Đã xảy ra lỗi khi tải thông tin tiệm bánh.';
+        if (error.code === 'permission-denied') {
+            errorMessage = 'Lỗi: Không có quyền truy cập dữ liệu của người chơi này. Vui lòng kiểm tra lại cài đặt Firestore Rules.';
+        } else if (error.message) {
+            errorMessage = `Lỗi: ${error.message}`;
+        }
+        visitorUpgradesList.innerHTML = `<li>${errorMessage}</li>`;
+    }
+}
+
+closeVisitorPopupButton.addEventListener('click', () => {
+    visitorBakeryPopup.classList.remove('active');
+});
 
 // --- Xử lý Bình Luận Real-time ---
 async function handleSendComment() {
@@ -566,6 +693,7 @@ tabLinks.forEach(link => {
         tabContents.forEach(item => item.classList.remove('active'));
 
         link.classList.add('active');
+        activeUpgradeTab = tabId; // Cập nhật tab đang active
         document.getElementById(tabId).classList.add('active');
 
         renderUpgrades(tabId); // Render lại nâng cấp cho tab mới được chọn
@@ -577,6 +705,7 @@ auth.onAuthStateChanged(async (user) => {
     initializeUpgrades(); // Luôn khởi tạo/reset định nghĩa nâng cấp
     if (user) {
         // Người dùng đã đăng nhập
+        activeUpgradeTab = 'nhanCong'; // Reset về tab mặc định khi đăng nhập
         currentUser = user;
         await showGameScreen(); // Sẽ gọi loadGame bên trong
     } else {
@@ -589,6 +718,7 @@ auth.onAuthStateChanged(async (user) => {
         // initializeUpgrades(); // Đã gọi ở trên
         updateDisplay(); // Cập nhật hiển thị (sẽ là 0 hết)
         showAuthScreen();
+        gameTitle.textContent = "Game nướng bánh - Đợi lương"; // Reset tiêu đề khi đăng xuất
         leaderboardPopup.style.display = 'none'; // Ẩn leaderboard khi đăng xuất
         commentsSection.style.display = 'none'; // Ẩn comments khi đăng xuất
     }

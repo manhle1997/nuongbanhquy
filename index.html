@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="authContainer">
+    <div id="authContainer" style="display: none;"> <!-- Thêm style display: none ở đây -->
         <h2>Đăng Nhập / Đăng Ký</h2>
         <input type="email" id="emailInput" placeholder="Email"> <!-- Thay đổi thành email -->
         <input type="password" id="passwordInput" placeholder="Mật khẩu">
@@ -28,7 +28,7 @@
             <div id="userSession" style="display: none;">
                 <p>Xin chào, <span id="loggedInUser"></span>! <button id="logoutButton">Đăng Xuất</button></p>
             </div>
-            <h1>Game nướng bánh - Đợi lương</h1>
+            <h1 id="gameTitle">Game nướng bánh - Đợi lương</h1> <!-- Thêm id="gameTitle" -->
 
             <div class="stats">
                 <p>🍪 Bánh Quy: <span id="currencyDisplay">0</span></p>
@@ -85,6 +85,24 @@
         </div>
     </div>
 
+    <!-- Popup để xem tiệm bánh của người khác -->
+    <div id="visitorBakeryPopup" class="visitor-popup"> <!-- Xóa style="display: none;" -->
+        <div class="visitor-popup-content">
+            <button id="closeVisitorPopupButton" class="close-button">&times;</button>
+            <h2 id="visitorBakeryName">Tiệm bánh của...</h2>
+            <div class="stats">
+                <p>🍪 Bánh Quy: <span id="visitorCurrencyDisplay">0</span></p>
+                <p>Bánh quy / giây: <span id="visitorCpsDisplay">0</span></p>
+                <p>Sức mạnh click: <span id="visitorClickPowerDisplay">1</span></p>
+            </div>
+            <h3>Các Nâng Cấp Đã Mua:</h3>
+            <ul id="visitorUpgradesList">
+                <!-- Nâng cấp của người được thăm sẽ hiển thị ở đây -->
+            </ul>
+            <button id="stealCookiesButton" class="steal-button">Ăn Cắp Bánh!</button>
+            <p id="stealResultDisplay" class="steal-result"></p>
+        </div>
+    </div>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>

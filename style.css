@@ -167,14 +167,23 @@ h1 {
 
 /* Styles for Auth Container */
 #authContainer {
-    background-color: #fffaf0;
+    background-color: #fff0f5; /* LavenderBlush - một màu pastel nhẹ nhàng */
     padding: 25px;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-radius: 20px; /* Bo góc nhiều hơn */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* Bóng đổ mềm mại hơn */
     text-align: center;
     width: 100%;
     max-width: 400px;
-    margin: 20px auto; /* Center it if it's the only thing visible */
+    /* margin: 20px auto; */ /* Xóa margin cũ */
+
+    /* Căn giữa popup */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000; /* Đảm bảo nổi lên trên */
+    border: 3px solid #ffc0cb; /* Pink - viền dễ thương */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; /* Thêm transition cho mượt mà */
 }
 
 #authContainer input {
@@ -185,10 +194,16 @@ h1 {
     border-radius: 5px;
     border: 1px solid #ccc;
     box-sizing: border-box;
+    font-size: 1em;
+}
+
+#authContainer input:focus {
+    border-color: #ff7f50; /* Màu san hô khi focus */
+    box-shadow: 0 0 5px rgba(255, 127, 80, 0.5);
 }
 
 #authContainer button {
-    background-color: #ff7f50; /* Màu san hô */
+    background-color: #ff69b4; /* HotPink - màu nút nổi bật */
     color: white;
     border: none;
     padding: 10px 20px;
@@ -196,11 +211,12 @@ h1 {
     border-radius: 5px;
     cursor: pointer;
     margin: 5px;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 3px #db4c98;
 }
 
 #authContainer button:hover {
-    background-color: #ff6347; /* Màu cà chua */
+    background-color: #ff1493; /* DeepPink */
 }
 
 #authMessage {
@@ -208,6 +224,13 @@ h1 {
     font-size: 0.9em;
     min-height: 1.2em; /* Reserve space for message */
     margin-top: 10px;
+}
+
+/* Thêm một lớp để ẩn/hiện authContainer mượt mà hơn nếu cần */
+.hidden {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9); /* Thu nhỏ một chút khi ẩn */
+    pointer-events: none; /* Không cho tương tác khi ẩn */
 }
 
 #userSession {
@@ -316,6 +339,78 @@ h1 {
 .comment-input-area button { padding: 8px 12px; background-color: #ff7f50; color: white; border: none; border-radius: 4px; cursor: pointer; }
 .comment-input-area button:hover { background-color: #ff6347; }
 .comment-input-area button:disabled { background-color: #cccccc; cursor: not-allowed;}
+
+/* Styles for Visitor Bakery Popup */
+.visitor-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Nền mờ */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001; /* Cao hơn authContainer một chút */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.visitor-popup.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.visitor-popup-content {
+    background-color: #fffaf0; /* Màu kem */
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    text-align: left;
+    width: 90%;
+    max-width: 550px;
+    position: relative;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.visitor-popup-content .close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.8em;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+}
+.visitor-popup-content .close-button:hover { color: #333; }
+.visitor-popup-content h2, .visitor-popup-content h3 { color: #d2691e; text-align: center; }
+.visitor-popup-content ul { list-style-type: none; padding-left: 0; }
+.visitor-popup-content li { background-color: #fff0db; margin-bottom: 8px; padding: 10px; border-radius: 5px; border: 1px solid #f5deb3; }
+.visitor-popup-content .steal-button {
+    display: block;
+    width: 60%;
+    margin: 20px auto 10px;
+    padding: 10px 15px;
+    background-color: #e74c3c; /* Màu đỏ cờ */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 3px #c0392b;
+}
+.visitor-popup-content .steal-button:hover {
+    background-color: #c0392b;
+}
+.visitor-popup-content .steal-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+.visitor-popup-content .steal-result { text-align: center; margin-top: 10px; font-weight: bold; min-height: 1.2em; }
 
 /* Responsive adjustments */
 @media (max-width: 1100px) { /* Điều chỉnh breakpoint này nếu cần */
